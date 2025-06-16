@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'dart:ui';
 import '../../config/app_theme.dart';
 import '../../config/api_config.dart';
+import '../../model/weather_data.dart';
 import '../../services/weather_service.dart';
 import '../home/home_screen.dart';
 import 'widgets/circular_progress.dart';
@@ -15,15 +16,18 @@ class ProgressScreen extends StatefulWidget {
   State<ProgressScreen> createState() => _ProgressScreenState();
 }
 
-class _ProgressScreenState extends State<ProgressScreen>  {
+class _ProgressScreenState extends State<ProgressScreen> {
   double _progress = 0.0;
   String _currentMessage = '';
   List<WeatherData> _weatherData = [];
   bool _isLoading = true;
   bool _hasError = false;
   String _errorMessage = '';
+  int _successCount = 0;
+  int _errorCount = 0;
 
   final List<String> _loadingMessages = [
+    'Vérification de la clé API...',
     'Connexion aux serveurs météo...',
     'Récupération des données...',
     'Traitement des informations...',
@@ -36,17 +40,35 @@ class _ProgressScreenState extends State<ProgressScreen>  {
   @override
   void initState() {
     super.initState();
-    _startWeatherLoading();
+    _checkApiAndStartLoading();
   }
 
-  Future<void> _startWeatherLoading() async {
+  Future<void> _checkApiAndStartLoading() async {
     try {
       setState(() {
         _isLoading = true;
         _hasError = false;
         _progress = 0.0;
         _currentMessage = _loadingMessages[0];
+        _successCount = 0;
+        _errorCount = 0;
       });
+
+      // Vérifier d'abord si la clé API est configurée
+      if (!ApiConfig.isApiKeyValid) {
+        throw Exception('⚠️ Clé API non configurée.\nVeuillez configurer votre clé OpenWeatherMap dans ApiConfig.');
+      }
+
+      // Tester la clé API
+      setState(() {
+        _currentMessage = 'Test de la clé API...';
+        _progress = 0.1;
+      });
+
+      final isApiValid = await _weatherService.testApiKey();
+      if (!isApiValid) {
+        throw Exception('🔑 Clé API invalide.\nVérifiez votre clé OpenWeatherMap.');
+      }
 
       await _loadWeatherData();
     } catch (e) {
@@ -65,21 +87,27 @@ class _ProgressScreenState extends State<ProgressScreen>  {
     for (int i = 0; i < cities.length; i++) {
       try {
         // Mise à jour du message et de la progression
-        final messageIndex = (i * _loadingMessages.length) ~/ cities.length;
+        final messageIndex = 1 + ((i * (_loadingMessages.length - 2)) ~/ cities.length);
         setState(() {
-          _currentMessage = _loadingMessages[messageIndex.clamp(0, _loadingMessages.length - 1)];
-          _progress = (i + 1) / cities.length;
+          _currentMessage = _loadingMessages[messageIndex.clamp(1, _loadingMessages.length - 1)];
+          _progress = 0.1 + (0.8 * (i + 1) / cities.length); // 10% pour test API, 80% pour données
         });
-
-        // Simulation d'un délai réaliste
-        await Future.delayed(const Duration(milliseconds: 800));
 
         // Récupération des données météo
         final weatherData = await _weatherService.getWeatherByCity(cities[i]);
         weatherList.add(weatherData);
+        _successCount++;
+
+        print('✅ Données récupérées pour ${weatherData.displayName}');
       } catch (e) {
-        print('Erreur pour la ville ${cities[i]}: $e');
+        _errorCount++;
+        print('❌ Erreur pour la ville ${cities[i]}: $e');
         // Continue avec les autres villes
+      }
+
+      // Simulation d'un délai réaliste entre les appels
+      if (i < cities.length - 1) {
+        await Future.delayed(const Duration(milliseconds: 500));
       }
     }
 
@@ -87,7 +115,13 @@ class _ProgressScreenState extends State<ProgressScreen>  {
     setState(() {
       _weatherData = weatherList;
       _isLoading = false;
-      _currentMessage = 'Données récupérées avec succès !';
+      _progress = 1.0;
+      if (weatherList.isNotEmpty) {
+        _currentMessage = 'Données récupérées avec succès !';
+      } else {
+        _hasError = true;
+        _errorMessage = '❌ Aucune donnée météo récupérée.\nVérifiez votre connexion internet.';
+      }
     });
   }
 
@@ -211,7 +245,23 @@ class _ProgressScreenState extends State<ProgressScreen>  {
               .shimmer(duration: const Duration(seconds: 2)),
         ),
 
-        const SizedBox(height: 60),
+        const SizedBox(height: 20),
+
+        // Statistiques en cours
+        if (_successCount > 0 || _errorCount > 0)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 30),
+            child: Text(
+              '✅ $_successCount réussies • ❌ $_errorCount erreurs',
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.7),
+                fontSize: 12,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+
+        const SizedBox(height: 40),
 
         // Cartes skeleton
         Expanded(
@@ -233,24 +283,38 @@ class _ProgressScreenState extends State<ProgressScreen>  {
       children: [
         const SizedBox(height: 20),
 
-        // Message de succès
+        // Message de succès avec statistiques
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 30),
-          child: Text(
-            '${_weatherData.length} villes trouvées',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-            ),
-            textAlign: TextAlign.center,
+          child: Column(
+            children: [
+              Text(
+                '${_weatherData.length} villes trouvées',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              if (_errorCount > 0)
+                Text(
+                  '$_errorCount erreurs de connexion',
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.7),
+                    fontSize: 14,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+            ],
           ).animate().fadeIn(delay: const Duration(milliseconds: 300)),
         ),
 
         const SizedBox(height: 20),
 
         // Liste des cartes météo
-      /*  Expanded(
+        Expanded(
           child: ListView.builder(
             itemCount: _weatherData.length,
             itemBuilder: (context, index) {
@@ -260,7 +324,7 @@ class _ProgressScreenState extends State<ProgressScreen>  {
               );
             },
           ),
-        ),*/
+        ),
 
         const SizedBox(height: 20),
 
@@ -271,7 +335,7 @@ class _ProgressScreenState extends State<ProgressScreen>  {
             width: double.infinity,
             height: 50,
             child: ElevatedButton(
-              onPressed: _startWeatherLoading,
+              onPressed: _checkApiAndStartLoading,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.transparent,
                 shadowColor: Colors.transparent,
@@ -351,7 +415,7 @@ class _ProgressScreenState extends State<ProgressScreen>  {
 
         // Titre d'erreur
         Text(
-          'Erreur de connexion',
+          'Erreur de configuration',
           style: Theme.of(context).textTheme.headlineMedium?.copyWith(
             color: Colors.white,
             fontWeight: FontWeight.bold,
@@ -364,7 +428,7 @@ class _ProgressScreenState extends State<ProgressScreen>  {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 40),
           child: Text(
-            'Impossible de récupérer les données météo.\nVérifiez votre connexion internet.',
+            _errorMessage,
             style: const TextStyle(
               color: Colors.white70,
               fontSize: 16,
@@ -383,7 +447,7 @@ class _ProgressScreenState extends State<ProgressScreen>  {
             width: double.infinity,
             height: 50,
             child: ElevatedButton(
-              onPressed: _startWeatherLoading,
+              onPressed: _checkApiAndStartLoading,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.transparent,
                 shadowColor: Colors.transparent,
@@ -404,7 +468,7 @@ class _ProgressScreenState extends State<ProgressScreen>  {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       const Icon(
-                        Icons.reply,
+                        Icons.replay,
                         color: Colors.white,
                         size: 20,
                       ),

@@ -11,41 +11,39 @@ class FeatureIndicators extends StatelessWidget {
       children: [
         const SizedBox(height: 40),
 
-        // Titre des fonctionnalités
         Text(
           'Fonctionnalités',
           style: Theme.of(context).textTheme.headlineMedium?.copyWith(
             fontSize: 22,
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.bold,color: Colors.white
           ),
         ),
 
         const SizedBox(height: 30),
 
-        // Liste des fonctionnalités
         _buildFeatureItem(
-          icon: '🌍',
+          imagePath: 'assets/images/weather/earth.png',
           title: 'Météo Mondiale',
           description: 'Accédez à la météo de toutes les villes du monde',
           delay: 0,
         ),
 
         _buildFeatureItem(
-          icon: '📍',
+          imagePath: 'assets/images/weather/pin.png',
           title: 'Localisation GPS',
           description: 'Météo automatique basée sur votre position',
           delay: 200,
         ),
 
         _buildFeatureItem(
-          icon: '⚡',
+          imagePath: 'assets/images/weather/bar-chart.png',
           title: 'Temps Réel',
           description: 'Données météo mises à jour en continu',
           delay: 400,
         ),
 
         _buildFeatureItem(
-          icon: '📊',
+          imagePath: 'assets/images/weather/flash.png',
           title: 'Détails Complets',
           description: 'Humidité, pression, vent et plus encore',
           delay: 600,
@@ -55,7 +53,7 @@ class FeatureIndicators extends StatelessWidget {
   }
 
   Widget _buildFeatureItem({
-    required String icon,
+    required String imagePath,
     required String title,
     required String description,
     required int delay,
@@ -73,7 +71,7 @@ class FeatureIndicators extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // Icône
+          // Image
           Container(
             width: 50,
             height: 50,
@@ -82,9 +80,10 @@ class FeatureIndicators extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
             ),
             child: Center(
-              child: Text(
-                icon,
-                style: const TextStyle(fontSize: 24),
+              child: Image.asset(
+                imagePath,
+                width: 30,
+                height: 30,
               ),
             ),
           ),

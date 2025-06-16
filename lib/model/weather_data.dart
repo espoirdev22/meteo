@@ -1,4 +1,3 @@
-
 class WeatherData {
   final String cityName;
   final String country;
@@ -33,22 +32,22 @@ class WeatherData {
   factory WeatherData.fromJson(Map<String, dynamic> json) {
     return WeatherData(
       cityName: json['name'] ?? '',
-      country: json['sys']['country'] ?? '',
-      temperature: (json['main']['temp'] ?? 0).toDouble(),
-      feelsLike: (json['main']['feels_like'] ?? 0).toDouble(),
-      description: json['weather'][0]['description'] ?? '',
-      icon: json['weather'][0]['icon'] ?? '',
-      humidity: json['main']['humidity'] ?? 0,
-      pressure: (json['main']['pressure'] ?? 0).toDouble(),
-      windSpeed: (json['wind']['speed'] ?? 0).toDouble(),
+      country: json['sys']?['country'] ?? '',
+      temperature: (json['main']?['temp'] ?? 0).toDouble(),
+      feelsLike: (json['main']?['feels_like'] ?? 0).toDouble(),
+      description: json['weather']?[0]?['description'] ?? '',
+      icon: json['weather']?[0]?['icon'] ?? '01d',
+      humidity: json['main']?['humidity'] ?? 0,
+      pressure: (json['main']?['pressure'] ?? 0).toDouble(),
+      windSpeed: (json['wind']?['speed'] ?? 0).toDouble(),
       visibility: json['visibility'] ?? 0,
       dateTime: DateTime.fromMillisecondsSinceEpoch(
         (json['dt'] ?? 0) * 1000,
       ),
-      sunrise: json['sys']['sunrise'] != null
+      sunrise: json['sys']?['sunrise'] != null
           ? DateTime.fromMillisecondsSinceEpoch(json['sys']['sunrise'] * 1000)
           : null,
-      sunset: json['sys']['sunset'] != null
+      sunset: json['sys']?['sunset'] != null
           ? DateTime.fromMillisecondsSinceEpoch(json['sys']['sunset'] * 1000)
           : null,
     );
@@ -61,6 +60,7 @@ class WeatherData {
   String get pressureString => '${pressure.round()} hPa';
   String get windSpeedString => '${windSpeed.round()} m/s';
   String get visibilityString => '${(visibility / 1000).round()} km';
+  String get humidityString => '$humidity%';
 
   String get iconEmoji {
     switch (icon.substring(0, 2)) {
