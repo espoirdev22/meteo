@@ -61,20 +61,20 @@ class WeatherCard extends StatelessWidget {
               padding: const EdgeInsets.all(20),
               child: Row(
                 children: [
-                  // Icône météo
+                  // Weather icon
                   _buildWeatherIcon(),
 
                   const SizedBox(width: 16),
 
-                  // Informations météo
+                  // Weather information
                   Expanded(
                     child: _buildWeatherInfo(context),
                   ),
 
-                  // Température
+                  // Temperature
                   _buildTemperature(context),
 
-                  // Flèche
+                  // Arrow
                   const SizedBox(width: 12),
                   Icon(
                     Icons.arrow_forward_ios,
@@ -110,11 +110,76 @@ class WeatherCard extends StatelessWidget {
       ),
       child: Center(
         child: Text(
-          weatherData.iconEmoji,
+          _getWeatherEmoji(weatherData.icon),
           style: const TextStyle(fontSize: 28),
         ),
       ),
     );
+  }
+
+  // Alternative method using local assets
+  Widget _buildWeatherIconAsset() {
+    return Container(
+      width: 60,
+      height: 60,
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.1),
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: Colors.white.withOpacity(0.2),
+          width: 1,
+        ),
+      ),
+      child: ClipOval(
+        child: weatherData.getAssetIconWidget(size: 40),
+      ),
+    );
+  }
+
+  // Alternative method using emoji-style icons
+  Widget _buildWeatherIconEmoji() {
+    return Container(
+      width: 60,
+      height: 60,
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.1),
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: Colors.white.withOpacity(0.2),
+          width: 1,
+        ),
+      ),
+      child: Center(
+        child: Text(
+          _getWeatherEmoji(weatherData.icon),
+          style: const TextStyle(fontSize: 28),
+        ),
+      ),
+    );
+  }
+
+  String _getWeatherEmoji(String iconCode) {
+    switch (iconCode.substring(0, 2)) {
+      case '01':
+        return iconCode.endsWith('d') ? '☀️' : '🌙';
+      case '02':
+        return iconCode.endsWith('d') ? '⛅' : '☁️';
+      case '03':
+      case '04':
+        return '☁️';
+      case '09':
+        return '🌧️';
+      case '10':
+        return '🌦️';
+      case '11':
+        return '⛈️';
+      case '13':
+        return '❄️';
+      case '50':
+        return '🌫️';
+      default:
+        return '🌤️';
+    }
   }
 
   Widget _buildWeatherInfo(BuildContext context) {
@@ -152,7 +217,7 @@ class WeatherCard extends StatelessWidget {
             ),
             const SizedBox(width: 4),
             Text(
-              '${weatherData.humidity}%',
+              weatherData.humidityString,
               style: TextStyle(
                 color: Colors.white.withOpacity(0.6),
                 fontSize: 12,
@@ -202,7 +267,7 @@ class WeatherCard extends StatelessWidget {
   }
 }
 
-// Widget pour les cartes en mode chargement
+// Widget for loading state cards
 class WeatherCardSkeleton extends StatefulWidget {
   final int animationDelay;
 
@@ -250,52 +315,39 @@ class _WeatherCardSkeletonState extends State<WeatherCardSkeleton>
         padding: const EdgeInsets.all(20),
         child: Row(
           children: [
-            // Icône skeleton
-            Container(
-              width: 60,
-              height: 60,
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.1),
-                shape: BoxShape.circle,
-              ),
-            ),
+            // Icon skeleton
+            _buildSkeletonContainer(60, 60, isCircle: true),
 
             const SizedBox(width: 16),
 
-            // Informations skeleton
+            // Information skeleton
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    width: double.infinity,
-                    height: 16,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
+                  _buildSkeletonContainer(double.infinity, 16),
                   const SizedBox(height: 8),
-                  Container(
-                    width: 120,
-                    height: 12,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
+                  _buildSkeletonContainer(120, 12),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      _buildSkeletonContainer(60, 12),
+                      const SizedBox(width: 16),
+                      _buildSkeletonContainer(40, 12),
+                    ],
                   ),
                 ],
               ),
             ),
 
-            // Température skeleton
-            Container(
-              width: 60,
-              height: 32,
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
+            // Temperature skeleton
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                _buildSkeletonContainer(60, 32),
+                const SizedBox(height: 4),
+                _buildSkeletonContainer(80, 12),
+              ],
             ),
           ],
         ),
@@ -304,4 +356,54 @@ class _WeatherCardSkeletonState extends State<WeatherCardSkeleton>
         .shimmer(duration: const Duration(milliseconds: 1500))
         .fadeIn(delay: Duration(milliseconds: widget.animationDelay));
   }
+
+  Widget _buildSkeletonContainer(double width, double height, {bool isCircle = false}) {
+    return Container(
+      width: width == double.infinity ? null : width,
+      height: height,
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.1),
+        borderRadius: isCircle ? null : BorderRadius.circular(8),
+        shape: isCircle ? BoxShape.circle : BoxShape.rectangle,
+      ),
+    );
+  }
+}
+
+// Custom WeatherCard that allows choosing icon display method
+class CustomWeatherCard extends WeatherCard {
+  final WeatherIconType iconType;
+
+  const CustomWeatherCard({
+    Key? key,
+    required WeatherData weatherData,
+    VoidCallback? onTap,
+    bool isSelected = false,
+    int animationDelay = 0,
+    this.iconType = WeatherIconType.network,
+  }) : super(
+    key: key,
+    weatherData: weatherData,
+    onTap: onTap,
+    isSelected: isSelected,
+    animationDelay: animationDelay,
+  );
+
+  @override
+  Widget _buildWeatherIcon() {
+    switch (iconType) {
+      case WeatherIconType.network:
+        return super._buildWeatherIcon();
+      case WeatherIconType.asset:
+        return _buildWeatherIconAsset();
+      case WeatherIconType.emoji:
+        return _buildWeatherIconEmoji();
+    }
+  }
+}
+
+enum WeatherIconType {
+  network,
+  asset,
+  emoji,
 }

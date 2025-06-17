@@ -121,7 +121,7 @@ class _HomeScreenState extends State<HomeScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 40),
       child: SizedBox(
         width: double.infinity,
-        height: 90,
+        height: 60,
         child: ElevatedButton(
           onPressed: _isLoading ? null : _startWeatherDiscovery,
           style: ElevatedButton.styleFrom(

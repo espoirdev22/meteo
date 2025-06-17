@@ -1,3 +1,5 @@
+import 'package:flutter/material.dart';
+
 class WeatherData {
   final String cityName;
   final String country;
@@ -53,7 +55,7 @@ class WeatherData {
     );
   }
 
-  // Getters utiles
+  // Display getters
   String get displayName => '$cityName, $country';
   String get temperatureString => '${temperature.round()}°C';
   String get feelsLikeString => '${feelsLike.round()}°C';
@@ -62,19 +64,83 @@ class WeatherData {
   String get visibilityString => '${(visibility / 1000).round()} km';
   String get humidityString => '$humidity%';
 
-  String get iconEmoji {
-    switch (icon.substring(0, 2)) {
-      case '01': return '☀️'; // clear sky
-      case '02': return '⛅'; // few clouds
-      case '03': return '☁️'; // scattered clouds
-      case '04': return '☁️'; // broken clouds
-      case '09': return '🌧️'; // shower rain
-      case '10': return '🌦️'; // rain
-      case '11': return '⛈️'; // thunderstorm
-      case '13': return '❄️'; // snow
-      case '50': return '🌫️'; // mist
-      default: return '🌤️';
+  // Method to get weather icon widget from OpenWeatherMap API
+  Widget get weatherIconWidget {
+    return Image.network(
+      'https://openweathermap.org/img/wn/$icon@2x.png',
+      width: 60,
+      height: 60,
+      errorBuilder: (context, error, stackTrace) {
+        return const Icon(Icons.error, size: 60);
+      },
+    );
+  }
+
+  // Asset path for local weather icons
+  String get iconAssetPath {
+    const knownIcons = [
+      '01d', '01n', '02d', '02n', '03d', '03n', '04d', '04n',
+      '09d', '09n', '10d', '10n', '11d', '11n', '13d', '13n',
+      '50d', '50n'
+    ];
+
+    if (knownIcons.contains(icon)) {
+      return 'assets/images/weather/$icon.png';
+    } else {
+      return 'assets/images/weather/default.png'; // fallback image
     }
+  }
+
+  // Alternative asset path with descriptive names based on day/night
+  String get iconAssetDayNight {
+    String timeIndicator = icon.length > 2 ? icon.substring(2) : 'd';
+    String baseName;
+
+    switch (icon.substring(0, 2)) {
+      case '01':
+        baseName = timeIndicator == 'd' ? 'clear_sky_day' : 'clear_sky_night';
+        break;
+      case '02':
+        baseName = timeIndicator == 'd' ? 'few_clouds_day' : 'few_clouds_night';
+        break;
+      case '03':
+        baseName = 'scattered_clouds';
+        break;
+      case '04':
+        baseName = 'broken_clouds';
+        break;
+      case '09':
+        baseName = 'shower_rain';
+        break;
+      case '10':
+        baseName = timeIndicator == 'd' ? 'rain_day' : 'rain_night';
+        break;
+      case '11':
+        baseName = 'thunderstorm';
+        break;
+      case '13':
+        baseName = 'snow';
+        break;
+      case '50':
+        baseName = 'mist';
+        break;
+      default:
+        baseName = 'default';
+    }
+
+    return 'assets/images/weather/$baseName.png';
+  }
+
+  // Helper method to get local asset image widget
+  Widget getAssetIconWidget({double size = 60}) {
+    return Image.asset(
+      iconAssetPath,
+      width: size,
+      height: size,
+      errorBuilder: (context, error, stackTrace) {
+        return Icon(Icons.wb_sunny, size: size);
+      },
+    );
   }
 
   Map<String, dynamic> toJson() {
@@ -93,5 +159,24 @@ class WeatherData {
       'sunrise': sunrise?.millisecondsSinceEpoch,
       'sunset': sunset?.millisecondsSinceEpoch,
     };
+  }
+
+  @override
+  String toString() {
+    return 'WeatherData(city: $displayName, temp: $temperatureString, desc: $description)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is WeatherData &&
+        other.cityName == cityName &&
+        other.country == country &&
+        other.dateTime == dateTime;
+  }
+
+  @override
+  int get hashCode {
+    return cityName.hashCode ^ country.hashCode ^ dateTime.hashCode;
   }
 }
