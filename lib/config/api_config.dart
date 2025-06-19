@@ -22,11 +22,11 @@ class ApiConfig {
   static const List<String> DEFAULT_CITIES = [
     'Paris,FR',
     'Dakar,SN',      // Ville locale
-    'London,GB',
+    //'London,GB',
     'New York,US',
     'Tokyo,JP',
-    'Berlin,DE',
-    'Cairo,EG',
+    //'Berlin,DE',
+    //'Cairo,EG',
     'Abidjan,CI',    // Afrique de l'Ouest
   ];
 

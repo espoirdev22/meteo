@@ -179,4 +179,31 @@ class WeatherData {
   int get hashCode {
     return cityName.hashCode ^ country.hashCode ^ dateTime.hashCode;
   }
+// Ajoutez cette méthode dans votre classe WeatherData existante
+
+  String get iconEmoji {
+    switch (icon.substring(0, 2)) {
+      case '01': // Clear sky
+        return icon.endsWith('d') ? '☀️' : '🌙';
+      case '02': // Few clouds
+        return icon.endsWith('d') ? '🌤️' : '🌙';
+      case '03': // Scattered clouds
+        return '⛅';
+      case '04': // Broken clouds
+        return '☁️';
+      case '09': // Shower rain
+        return '🌦️';
+      case '10': // Rain
+        return icon.endsWith('d') ? '🌧️' : '🌧️';
+      case '11': // Thunderstorm
+        return '⛈️';
+      case '13': // Snow
+        return '❄️';
+      case '50': // Mist/Fog
+        return '🌫️';
+      default:
+        return '🌡️'; // Default thermometer
+    }
+  }
+
 }
