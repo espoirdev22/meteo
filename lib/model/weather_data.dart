@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../core/constants/weather_emojis.dart'; // Import de votre bibliothèque
 
 class WeatherData {
   final String cityName;
@@ -15,6 +16,10 @@ class WeatherData {
   final DateTime? sunrise;
   final DateTime? sunset;
 
+  // ⭐ NOUVELLES PROPRIÉTÉS POUR LA GÉOLOCALISATION
+  final double? latitude;
+  final double? longitude;
+
   WeatherData({
     required this.cityName,
     required this.country,
@@ -29,6 +34,9 @@ class WeatherData {
     required this.dateTime,
     this.sunrise,
     this.sunset,
+    // ⭐ PARAMÈTRES OPTIONNELS POUR LA GÉOLOCALISATION
+    this.latitude,
+    this.longitude,
   });
 
   factory WeatherData.fromJson(Map<String, dynamic> json) {
@@ -52,10 +60,53 @@ class WeatherData {
       sunset: json['sys']?['sunset'] != null
           ? DateTime.fromMillisecondsSinceEpoch(json['sys']['sunset'] * 1000)
           : null,
+      // ⭐ EXTRACTION DES COORDONNÉES DEPUIS L'API
+      latitude: json['coord']?['lat']?.toDouble(),
+      longitude: json['coord']?['lon']?.toDouble(),
     );
   }
 
-  // Display getters
+  // ⭐ FACTORY CONSTRUCTOR AVEC COORDONNÉES EXPLICITES
+  factory WeatherData.withCoordinates({
+    required String cityName,
+    required String country,
+    required double temperature,
+    required double feelsLike,
+    required String description,
+    required String icon,
+    required int humidity,
+    required double pressure,
+    required double windSpeed,
+    required int visibility,
+    required DateTime dateTime,
+    required double latitude,
+    required double longitude,
+    DateTime? sunrise,
+    DateTime? sunset,
+  }) {
+    return WeatherData(
+      cityName: cityName,
+      country: country,
+      temperature: temperature,
+      feelsLike: feelsLike,
+      description: description,
+      icon: icon,
+      humidity: humidity,
+      pressure: pressure,
+      windSpeed: windSpeed,
+      visibility: visibility,
+      dateTime: dateTime,
+      sunrise: sunrise,
+      sunset: sunset,
+      latitude: latitude,
+      longitude: longitude,
+    );
+  }
+
+  // ============================================
+  // 🎯 GETTERS POUR AFFICHAGE
+  // ============================================
+
   String get displayName => '$cityName, $country';
   String get temperatureString => '${temperature.round()}°C';
   String get feelsLikeString => '${feelsLike.round()}°C';
@@ -64,7 +115,57 @@ class WeatherData {
   String get visibilityString => '${(visibility / 1000).round()} km';
   String get humidityString => '$humidity%';
 
-  // Method to get weather icon widget from OpenWeatherMap API
+  // ⭐ NOUVEAUX GETTERS POUR LES COORDONNÉES
+  String get coordinatesString {
+    if (latitude != null && longitude != null) {
+      return '${latitude!.toStringAsFixed(4)}, ${longitude!.toStringAsFixed(4)}';
+    }
+    return 'Coordonnées non disponibles';
+  }
+
+  bool get hasCoordinates => latitude != null && longitude != null;
+
+  // ============================================
+  // 🎨 EMOJIS MÉTÉO (GETTERS EXISTANTS)
+  // ============================================
+
+  /// Emoji météo principal basé sur le code OpenWeatherMap
+  String get iconEmoji => WeatherEmojis.getWeatherEmoji(icon);
+
+  /// Emoji météo intelligent (prend en compte température, vent, etc.)
+  String get smartEmoji => WeatherEmojis.getSmartEmoji(
+    iconCode: icon,
+    temperature: temperature,
+    windSpeed: windSpeed,
+    humidity: humidity,
+  );
+
+  /// Emoji basé sur la température uniquement
+  String get temperatureEmoji => WeatherEmojis.getTemperatureEmoji(temperature);
+
+  /// Emoji basé sur le vent uniquement
+  String get windEmoji => WeatherEmojis.getWindEmoji(windSpeed);
+
+  /// Emoji basé sur l'humidité uniquement
+  String get humidityEmoji => WeatherEmojis.getHumidityEmoji(humidity);
+
+  /// Emoji alternatif aléatoire de la même catégorie
+  String get randomCategoryEmoji => WeatherEmojis.getRandomEmoji(weatherCategory);
+
+  /// Catégorie météo (sunny, rainy, etc.)
+  String get weatherCategory => WeatherEmojis.getWeatherCategory(icon);
+
+  /// Description de l'emoji météo
+  String get emojiDescription => WeatherEmojis.getEmojiDescription(icon);
+
+  /// Vérifie si c'est la nuit
+  bool get isNightTime => WeatherEmojis.isNightTime(icon);
+
+  // ============================================
+  // 🖼️ WIDGETS D'ICÔNES (MÉTHODES EXISTANTES)
+  // ============================================
+
+  /// Widget d'icône depuis l'API OpenWeatherMap
   Widget get weatherIconWidget {
     return Image.network(
       'https://openweathermap.org/img/wn/$icon@2x.png',
@@ -76,7 +177,7 @@ class WeatherData {
     );
   }
 
-  // Asset path for local weather icons
+  /// Chemin d'asset pour les icônes locales
   String get iconAssetPath {
     const knownIcons = [
       '01d', '01n', '02d', '02n', '03d', '03n', '04d', '04n',
@@ -87,51 +188,11 @@ class WeatherData {
     if (knownIcons.contains(icon)) {
       return 'assets/images/weather/$icon.png';
     } else {
-      return 'assets/images/weather/default.png'; // fallback image
+      return 'assets/images/weather/default.png';
     }
   }
 
-  // Alternative asset path with descriptive names based on day/night
-  String get iconAssetDayNight {
-    String timeIndicator = icon.length > 2 ? icon.substring(2) : 'd';
-    String baseName;
-
-    switch (icon.substring(0, 2)) {
-      case '01':
-        baseName = timeIndicator == 'd' ? 'clear_sky_day' : 'clear_sky_night';
-        break;
-      case '02':
-        baseName = timeIndicator == 'd' ? 'few_clouds_day' : 'few_clouds_night';
-        break;
-      case '03':
-        baseName = 'scattered_clouds';
-        break;
-      case '04':
-        baseName = 'broken_clouds';
-        break;
-      case '09':
-        baseName = 'shower_rain';
-        break;
-      case '10':
-        baseName = timeIndicator == 'd' ? 'rain_day' : 'rain_night';
-        break;
-      case '11':
-        baseName = 'thunderstorm';
-        break;
-      case '13':
-        baseName = 'snow';
-        break;
-      case '50':
-        baseName = 'mist';
-        break;
-      default:
-        baseName = 'default';
-    }
-
-    return 'assets/images/weather/$baseName.png';
-  }
-
-  // Helper method to get local asset image widget
+  /// Widget d'icône depuis les assets locaux
   Widget getAssetIconWidget({double size = 60}) {
     return Image.asset(
       iconAssetPath,
@@ -142,6 +203,119 @@ class WeatherData {
       },
     );
   }
+
+  // ============================================
+  // 🎨 WIDGETS EMOJI (MÉTHODES EXISTANTES)
+  // ============================================
+
+  /// Widget emoji simple
+  Widget getEmojiWidget({double fontSize = 60}) {
+    return Text(
+      iconEmoji,
+      style: TextStyle(fontSize: fontSize),
+    );
+  }
+
+  /// Widget emoji intelligent
+  Widget getSmartEmojiWidget({double fontSize = 60}) {
+    return Text(
+      smartEmoji,
+      style: TextStyle(fontSize: fontSize),
+    );
+  }
+
+  /// Widget emoji avec description
+  Widget getEmojiWithDescription({
+    double fontSize = 48,
+    double descriptionFontSize = 16,
+  }) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          iconEmoji,
+          style: TextStyle(fontSize: fontSize),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          emojiDescription,
+          style: TextStyle(
+            fontSize: descriptionFontSize,
+            color: Colors.grey[600],
+          ),
+          textAlign: TextAlign.center,
+        ),
+      ],
+    );
+  }
+
+  /// Widget combinant emoji et température
+  Widget getEmojiWithTemperature({
+    double emojiSize = 48,
+    double tempSize = 24,
+  }) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          iconEmoji,
+          style: TextStyle(fontSize: emojiSize),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          temperatureString,
+          style: TextStyle(
+            fontSize: tempSize,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ============================================
+  // 🔧 MÉTHODES UTILITAIRES
+  // ============================================
+
+  /// Obtient un ensemble d'emojis liés à cette météo
+  List<String> getRelatedEmojis() {
+    return [
+      iconEmoji,
+      temperatureEmoji,
+      windEmoji,
+      humidityEmoji,
+    ];
+  }
+
+  /// Obtient un résumé emoji complet
+  String get emojiSummary {
+    return '$iconEmoji $temperatureEmoji $windEmoji $humidityEmoji';
+  }
+
+  // ⭐ MÉTHODE POUR CRÉER UNE COPIE AVEC DE NOUVELLES COORDONNÉES
+  WeatherData copyWithCoordinates(double latitude, double longitude) {
+    return WeatherData(
+      cityName: cityName,
+      country: country,
+      temperature: temperature,
+      feelsLike: feelsLike,
+      description: description,
+      icon: icon,
+      humidity: humidity,
+      pressure: pressure,
+      windSpeed: windSpeed,
+      visibility: visibility,
+      dateTime: dateTime,
+      sunrise: sunrise,
+      sunset: sunset,
+      latitude: latitude,
+      longitude: longitude,
+    );
+  }
+
+  // ============================================
+  // 📊 MÉTHODES DE SÉRIALISATION
+  // ============================================
 
   Map<String, dynamic> toJson() {
     return {
@@ -158,12 +332,18 @@ class WeatherData {
       'dateTime': dateTime.millisecondsSinceEpoch,
       'sunrise': sunrise?.millisecondsSinceEpoch,
       'sunset': sunset?.millisecondsSinceEpoch,
+      // ⭐ AJOUT DES COORDONNÉES AU JSON
+      'latitude': latitude,
+      'longitude': longitude,
     };
   }
 
   @override
   String toString() {
-    return 'WeatherData(city: $displayName, temp: $temperatureString, desc: $description)';
+    String coordsInfo = hasCoordinates
+        ? ' (${coordinatesString})'
+        : '';
+    return 'WeatherData(city: $displayName$coordsInfo, temp: $temperatureString, emoji: $iconEmoji)';
   }
 
   @override
@@ -172,38 +352,17 @@ class WeatherData {
     return other is WeatherData &&
         other.cityName == cityName &&
         other.country == country &&
-        other.dateTime == dateTime;
+        other.dateTime == dateTime &&
+        other.latitude == latitude &&
+        other.longitude == longitude;
   }
 
   @override
   int get hashCode {
-    return cityName.hashCode ^ country.hashCode ^ dateTime.hashCode;
+    return cityName.hashCode ^
+    country.hashCode ^
+    dateTime.hashCode ^
+    latitude.hashCode ^
+    longitude.hashCode;
   }
-// Ajoutez cette méthode dans votre classe WeatherData existante
-
-  String get iconEmoji {
-    switch (icon.substring(0, 2)) {
-      case '01': // Clear sky
-        return icon.endsWith('d') ? '☀️' : '🌙';
-      case '02': // Few clouds
-        return icon.endsWith('d') ? '🌤️' : '🌙';
-      case '03': // Scattered clouds
-        return '⛅';
-      case '04': // Broken clouds
-        return '☁️';
-      case '09': // Shower rain
-        return '🌦️';
-      case '10': // Rain
-        return icon.endsWith('d') ? '🌧️' : '🌧️';
-      case '11': // Thunderstorm
-        return '⛈️';
-      case '13': // Snow
-        return '❄️';
-      case '50': // Mist/Fog
-        return '🌫️';
-      default:
-        return '🌡️'; // Default thermometer
-    }
-  }
-
 }

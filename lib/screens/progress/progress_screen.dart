@@ -97,8 +97,8 @@ class _ProgressScreenState extends State<ProgressScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: AppTheme.primaryGradient,
+        decoration: BoxDecoration(
+          gradient: AppTheme.primaryGradient(context), // Remove const and call the method
         ),
         child: SafeArea(
           child: Column(
@@ -270,29 +270,24 @@ class _ProgressScreenState extends State<ProgressScreen> {
         // Bouton pour actualiser
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 30),
-          child: SizedBox(
+          child: Container(
             width: double.infinity,
             height: 50,
-            child: ElevatedButton(
-              onPressed: _startWeatherLoading,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.transparent,
-                shadowColor: Colors.transparent,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(25),
-                ),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Colors.white24, Colors.white12],
               ),
-              child: Ink(
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Colors.white24, Colors.white12],
-                  ),
-                  borderRadius: BorderRadius.circular(25),
-                  border: Border.all(
-                    color: Colors.white.withOpacity(0.3),
-                    width: 1,
-                  ),
-                ),
+              borderRadius: BorderRadius.circular(25),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.3),
+                width: 1,
+              ),
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: _startWeatherLoading,
+                borderRadius: BorderRadius.circular(25),
                 child: Container(
                   alignment: Alignment.center,
                   child: Row(

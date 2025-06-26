@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart'; // Add this import
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../../../model/weather_data.dart';
 
 class WeatherMap extends StatefulWidget {
@@ -16,35 +16,104 @@ class WeatherMap extends StatefulWidget {
 }
 
 class _WeatherMapState extends State<WeatherMap> {
-  late GoogleMapController mapController; // Now recognized
-  LatLng? currentPosition; // Now recognized
+  late GoogleMapController mapController;
+  LatLng? weatherLocation; // Position de la météo
+  LatLng? currentPosition; // Position actuelle de l'utilisateur
   bool isLoading = true;
+  bool showCurrentLocation = false; // Pour afficher la position actuelle optionnellement
 
   @override
   void initState() {
     super.initState();
-    _getCurrentLocation();
+    _initializeMap();
+  }
+
+  Future<void> _initializeMap() async {
+    // Utiliser les coordonnées de la météo en priorité
+    if (widget.weatherData.latitude != null && widget.weatherData.longitude != null) {
+      weatherLocation = LatLng(
+        widget.weatherData.latitude!,
+        widget.weatherData.longitude!,
+      );
+    }
+
+    // Optionnellement, obtenir la position actuelle pour comparaison
+    await _getCurrentLocation();
+
+    setState(() {
+      isLoading = false;
+    });
   }
 
   Future<void> _getCurrentLocation() async {
-    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      return;
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        return;
+      }
+
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          return;
+        }
+      }
+
+      Position position = await Geolocator.getCurrentPosition();
+      setState(() {
+        currentPosition = LatLng(position.latitude, position.longitude);
+      });
+    } catch (e) {
+      // Gérer l'erreur silencieusement
+      print('Erreur lors de l\'obtention de la position: $e');
+    }
+  }
+
+  Set<Marker> _buildMarkers() {
+    Set<Marker> markers = {};
+
+    // Marqueur pour la localisation météo (prioritaire)
+    if (weatherLocation != null) {
+      markers.add(
+        Marker(
+          markerId: const MarkerId('weatherLocation'),
+          position: weatherLocation!,
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
+          infoWindow: InfoWindow(
+            title: widget.weatherData.displayName,
+            snippet: '${widget.weatherData.temperatureString} • ${widget.weatherData.description}',
+          ),
+        ),
+      );
     }
 
-    LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        return;
+    // Marqueur pour la position actuelle (optionnel)
+    if (showCurrentLocation && currentPosition != null && weatherLocation != null) {
+      // Vérifier si les positions sont différentes (distance > 1km)
+      double distance = Geolocator.distanceBetween(
+        currentPosition!.latitude,
+        currentPosition!.longitude,
+        weatherLocation!.latitude,
+        weatherLocation!.longitude,
+      );
+
+      if (distance > 1000) { // Plus de 1km de différence
+        markers.add(
+          Marker(
+            markerId: const MarkerId('currentLocation'),
+            position: currentPosition!,
+            icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+            infoWindow: const InfoWindow(
+              title: 'Ma position',
+              snippet: 'Position actuelle',
+            ),
+          ),
+        );
       }
     }
 
-    Position position = await Geolocator.getCurrentPosition();
-    setState(() {
-      currentPosition = LatLng(position.latitude, position.longitude);
-      isLoading = false;
-    });
+    return markers;
   }
 
   @override
@@ -54,13 +123,33 @@ class _WeatherMapState extends State<WeatherMap> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Localisation',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Localisation',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              // Bouton pour toggle la position actuelle
+              if (currentPosition != null)
+                IconButton(
+                  onPressed: () {
+                    setState(() {
+                      showCurrentLocation = !showCurrentLocation;
+                    });
+                  },
+                  icon: Icon(
+                    showCurrentLocation ? Icons.my_location : Icons.my_location_outlined,
+                    color: Colors.white70,
+                    size: 20,
+                  ),
+                  tooltip: showCurrentLocation ? 'Masquer ma position' : 'Afficher ma position',
+                ),
+            ],
           ),
           const SizedBox(height: 16),
 
@@ -74,7 +163,7 @@ class _WeatherMapState extends State<WeatherMap> {
                 width: 1,
               ),
             ),
-            child: isLoading
+            child: isLoading || weatherLocation == null
                 ? const Center(child: CircularProgressIndicator())
                 : ClipRRect(
               borderRadius: BorderRadius.circular(20),
@@ -85,25 +174,14 @@ class _WeatherMapState extends State<WeatherMap> {
                   });
                 },
                 initialCameraPosition: CameraPosition(
-                  target: currentPosition!,
+                  target: weatherLocation!, // Utiliser la position météo
                   zoom: 12,
                 ),
-                markers: {
-                  Marker(
-                    markerId: const MarkerId('currentLocation'),
-                    position: currentPosition!,
-                    icon: BitmapDescriptor.defaultMarkerWithHue(
-                      BitmapDescriptor.hueRed,
-                    ),
-                    infoWindow: InfoWindow(
-                      title: widget.weatherData.displayName,
-                      snippet: widget.weatherData.temperatureString,
-                    ),
-                  ),
-                },
+                markers: _buildMarkers(),
                 mapType: MapType.normal,
-                myLocationEnabled: true,
+                myLocationEnabled: false, // Désactivé car on gère manuellement
                 myLocationButtonEnabled: false,
+                zoomControlsEnabled: false,
               ),
             ),
           ),
@@ -119,7 +197,7 @@ class _WeatherMapState extends State<WeatherMap> {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.location_on, color: Colors.red, size: 24),
+                  const Icon(Icons.location_on, color: Colors.blue, size: 24),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Column(
@@ -140,6 +218,15 @@ class _WeatherMapState extends State<WeatherMap> {
                             fontSize: 12,
                           ),
                         ),
+                        // Afficher les coordonnées pour debug (optionnel)
+                        if (weatherLocation != null)
+                          Text(
+                            'Lat: ${weatherLocation!.latitude.toStringAsFixed(4)}, Lng: ${weatherLocation!.longitude.toStringAsFixed(4)}',
+                            style: const TextStyle(
+                              color: Colors.white54,
+                              fontSize: 10,
+                            ),
+                          ),
                       ],
                     ),
                   ),

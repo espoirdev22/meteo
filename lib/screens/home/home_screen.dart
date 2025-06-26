@@ -18,8 +18,8 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: AppTheme.primaryGradient,
+        decoration: BoxDecoration(
+          gradient: AppTheme.primaryGradient(context), // Remove const and call the method
         ),
         child: SafeArea(
           child: SingleChildScrollView(
@@ -84,8 +84,9 @@ class _HomeScreenState extends State<HomeScreen> {
           Text(
             'Bienvenue dans',
             style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-              fontSize: 28,
-              fontWeight: FontWeight.w300,color: Colors.white
+                fontSize: 28,
+                fontWeight: FontWeight.w300,
+                color: Colors.white
             ),
           ).animate().fadeIn(delay: const Duration(milliseconds: 300)),
 
@@ -94,9 +95,10 @@ class _HomeScreenState extends State<HomeScreen> {
           Text(
             'WeatherPro',
             style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-              fontSize: 40,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 2,color: Colors.white
+                fontSize: 40,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 2,
+                color: Colors.white
             ),
           ).animate().fadeIn(delay: const Duration(milliseconds: 500))
               .slideY(begin: 0.3, duration: const Duration(milliseconds: 600)),
@@ -107,8 +109,9 @@ class _HomeScreenState extends State<HomeScreen> {
             'Découvrez la météo mondiale en temps réel\nUne expérience météo unique vous attend',
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-              fontSize: 16,
-              height: 1.5,color: Colors.white
+                fontSize: 16,
+                height: 1.5,
+                color: Colors.white
             ),
           ).animate().fadeIn(delay: const Duration(milliseconds: 700)),
         ],
@@ -119,25 +122,25 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildMainButton() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 40),
-      child: SizedBox(
+      child: Container(
         width: double.infinity,
         height: 60,
-        child: ElevatedButton(
-          onPressed: _isLoading ? null : _startWeatherDiscovery,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.transparent,
-            shadowColor: Colors.transparent,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(30),
+        decoration: BoxDecoration(
+          gradient: AppTheme.buttonGradient(context),
+          borderRadius: BorderRadius.circular(30),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.3),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
             ),
-          ).copyWith(
-            backgroundColor: MaterialStateProperty.all(Colors.transparent),
-          ),
-          child: Ink(
-            decoration: const BoxDecoration(
-              gradient: AppTheme.buttonGradient,
-              borderRadius: BorderRadius.all(Radius.circular(30)),
-            ),
+          ],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: _isLoading ? null : _startWeatherDiscovery,
+            borderRadius: BorderRadius.circular(30),
             child: Container(
               alignment: Alignment.center,
               child: _isLoading
@@ -161,10 +164,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   Text(
                     'DÉCOUVRIR LA MÉTÉO',
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.2,
-                      fontSize: 16,color: Colors.white
-                    ),
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.2,
+                        fontSize: 16,
+                        color: Colors.white),
                   ),
                 ],
               ),
