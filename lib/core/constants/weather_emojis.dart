@@ -6,6 +6,7 @@ class WeatherEmojis {
   // Constructeur privé pour empêcher l'instanciation
   WeatherEmojis._();
   static const String loadingEmoji = '⏳';
+
   // ============================================
   // 🌟 MAPPING PRINCIPAL DES EMOJIS
   // ============================================
@@ -105,25 +106,46 @@ class WeatherEmojis {
   };
 
   // ============================================
+  // 🔧 MÉTHODES UTILITAIRES DE VALIDATION
+  // ============================================
+
+  /// Valide et normalise un code météo
+  static String _validateWeatherCode(String iconCode) {
+    if (iconCode.isEmpty) return '01d';
+    if (iconCode.length < 2) return '01d';
+    if (iconCode.length == 2) return iconCode + 'd'; // Ajouter 'd' par défaut
+    if (iconCode.length > 3) return iconCode.substring(0, 3); // Tronquer si trop long
+    return iconCode;
+  }
+
+  /// Extrait le code de base (2 premiers caractères) de manière sécurisée
+  static String _getBaseCode(String iconCode) {
+    final validCode = _validateWeatherCode(iconCode);
+    return validCode.length >= 2 ? validCode.substring(0, 2) : '01';
+  }
+
+  // ============================================
   // 📱 MÉTHODES PRINCIPALES
   // ============================================
 
   /// Obtient l'emoji principal pour un code météo
   static String getWeatherEmoji(String iconCode) {
-    return weatherIcons[iconCode] ?? specialEmojis['default']!;
+    final validCode = _validateWeatherCode(iconCode);
+    return weatherIcons[validCode] ?? specialEmojis['default']!;
   }
 
   /// Obtient un emoji animé
   static String getAnimatedEmoji(String iconCode, {bool isAnimating = true}) {
     if (!isAnimating) return getWeatherEmoji(iconCode);
 
-    final sequence = animatedEmojiSequences[iconCode];
+    final validCode = _validateWeatherCode(iconCode);
+    final sequence = animatedEmojiSequences[validCode];
     if (sequence != null && sequence.isNotEmpty) {
       final now = DateTime.now();
       final frameIndex = now.second % sequence.length;
       return sequence[frameIndex];
     }
-    return getWeatherEmoji(iconCode);
+    return getWeatherEmoji(validCode);
   }
 
   /// Obtient un emoji aléatoire d'une catégorie
@@ -167,15 +189,20 @@ class WeatherEmojis {
     double? windSpeed,
     int? humidity,
   }) {
-    String baseEmoji = getWeatherEmoji(iconCode);
+    final validCode = _validateWeatherCode(iconCode);
+    String baseEmoji = getWeatherEmoji(validCode);
 
+    // Combinaisons spéciales basées sur la température
     if (temperature != null) {
-      if (temperature >= 35 && iconCode == '01d') return '🔥';
-      if (temperature <= 0 && (iconCode == '09d' || iconCode == '09n')) return '🧊';
+      if (temperature >= 35 && validCode == '01d') return '🔥';
+      if (temperature <= 0 && (validCode == '09d' || validCode == '09n')) return '🧊';
+      if (temperature >= 30 && (validCode == '02d' || validCode == '03d')) return '🌡️';
     }
 
+    // Combinaisons spéciales basées sur le vent
     if (windSpeed != null && windSpeed >= 7) {
-      if (iconCode.contains('09') || iconCode.contains('10')) return '🌊';
+      if (validCode.contains('09') || validCode.contains('10')) return '🌊';
+      if (validCode == '01d' || validCode == '02d') return '💨';
     }
 
     return baseEmoji;
@@ -185,10 +212,13 @@ class WeatherEmojis {
   // 🔧 MÉTHODES UTILITAIRES
   // ============================================
 
-  static bool isNightTime(String iconCode) => iconCode.endsWith('n');
+  static bool isNightTime(String iconCode) {
+    final validCode = _validateWeatherCode(iconCode);
+    return validCode.endsWith('n');
+  }
 
   static String getWeatherCategory(String iconCode) {
-    final baseCode = iconCode.substring(0, 2);
+    final baseCode = _getBaseCode(iconCode);
     switch (baseCode) {
       case '01': return 'sunny';
       case '02': case '03': case '04': return 'cloudy';
@@ -233,7 +263,8 @@ class WeatherEmojis {
       '50d': 'Brouillard',
       '50n': 'Brouillard',
     };
-    return descriptions[iconCode] ?? 'Conditions météorologiques';
+    final validCode = _validateWeatherCode(iconCode);
+    return descriptions[validCode] ?? 'Conditions météorologiques';
   }
 
   static int get totalEmojisCount {
@@ -246,6 +277,42 @@ class WeatherEmojis {
   }
 
   static List<String> get availableCategories => emojiCategories.keys.toList();
+
+  // ============================================
+  // 🧪 MÉTHODES DE DEBUG
+  // ============================================
+
+  /// Méthode pour tester la validité d'un code météo
+  static bool isValidWeatherCode(String iconCode) {
+    if (iconCode.isEmpty) return false;
+    if (iconCode.length < 2 || iconCode.length > 3) return false;
+
+    final baseCode = iconCode.substring(0, 2);
+    final validBaseCodes = ['01', '02', '03', '04', '09', '10', '11', '13', '50'];
+
+    if (!validBaseCodes.contains(baseCode)) return false;
+
+    if (iconCode.length == 3) {
+      final suffix = iconCode.substring(2);
+      return suffix == 'd' || suffix == 'n';
+    }
+
+    return true;
+  }
+
+  /// Méthode pour obtenir des informations de debug
+  static Map<String, dynamic> getDebugInfo(String iconCode) {
+    return {
+      'originalCode': iconCode,
+      'validatedCode': _validateWeatherCode(iconCode),
+      'baseCode': _getBaseCode(iconCode),
+      'isValid': isValidWeatherCode(iconCode),
+      'isNight': isNightTime(iconCode),
+      'category': getWeatherCategory(iconCode),
+      'emoji': getWeatherEmoji(iconCode),
+      'description': getEmojiDescription(iconCode),
+    };
+  }
 }
 
 // ============================================
@@ -258,4 +325,6 @@ extension WeatherEmojiExtension on String {
   bool get isNightWeather => WeatherEmojis.isNightTime(this);
   String get weatherCategory => WeatherEmojis.getWeatherCategory(this);
   String get emojiDescription => WeatherEmojis.getEmojiDescription(this);
+  bool get isValidWeatherCode => WeatherEmojis.isValidWeatherCode(this);
+  Map<String, dynamic> get weatherDebugInfo => WeatherEmojis.getDebugInfo(this);
 }

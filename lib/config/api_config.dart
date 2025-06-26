@@ -27,7 +27,7 @@ class ApiConfig {
     'Tokyo,JP',
     //'Berlin,DE',
     //'Cairo,EG',
-    'Abidjan,CI',    // Afrique de l'Ouest
+    'Nouakchott,MR',
   ];
 
   //  Limites du plan GRATUIT

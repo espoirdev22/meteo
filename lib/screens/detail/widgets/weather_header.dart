@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:intl/intl.dart';
 import '../../../model/weather_data.dart';
 import '../../../core/constants/weather_emojis.dart';
+import 'daily_weather_detail.dart'; // Ajoutez cet import
 import 'dart:ui';
 
 class WeatherHeader extends StatelessWidget {
@@ -35,7 +37,7 @@ class WeatherHeader extends StatelessWidget {
           const SizedBox(height: 30),
 
           // Prévisions hebdomadaires
-          _buildWeeklyForecast(),
+          _buildWeeklyForecast(context), // Ajoutez le context ici
         ],
       ),
     );
@@ -238,7 +240,7 @@ class WeatherHeader extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildDetailItem('UV', '5', 'Modéré', '☀️'), // Correction: utilisation directe de l'emoji
+              _buildDetailItem('UV', '5', 'Modéré', '☀️'),
               _buildDetailItem(
                 'HUMIDITÉ',
                 weatherData.humidityString,
@@ -308,7 +310,7 @@ class WeatherHeader extends StatelessWidget {
     );
   }
 
-  Widget _buildWeeklyForecast() {
+  Widget _buildWeeklyForecast(BuildContext context) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 0),
       child: Column(
@@ -327,16 +329,16 @@ class WeatherHeader extends StatelessWidget {
           ),
 
           Container(
-            constraints: BoxConstraints(maxHeight: 600), // Hauteur maximale
+            constraints: BoxConstraints(maxHeight: 600),
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.1),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: Colors.white.withOpacity(0.2)),
             ),
-            child: SingleChildScrollView( // Ajouté ici
+            child: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
-                children: _buildWeeklyForecastItems(),
+                children: _buildWeeklyForecastItems(context), // Passez le context
               ),
             ),
           ),
@@ -345,7 +347,7 @@ class WeatherHeader extends StatelessWidget {
     );
   }
 
-  List<Widget> _buildWeeklyForecastItems() {
+  List<Widget> _buildWeeklyForecastItems(BuildContext context) {
     final List<Widget> items = [];
     final forecasts = _generateWeeklyData();
     final now = DateTime.now();
@@ -356,116 +358,137 @@ class WeatherHeader extends StatelessWidget {
       final forecastDate = now.add(Duration(days: i));
 
       items.add(
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          decoration: BoxDecoration(
-            border: i < forecasts.length - 1
-                ? Border(
-              bottom: BorderSide(
-                color: Colors.white.withOpacity(0.1),
-                width: 0.5,
-              ),
-            )
-                : null,
-          ),
-          child: Row(
-            children: [
-              // Jour de la semaine
-              SizedBox(
-                width: 80,
-                child: Text(
-                  isToday ? 'Aujourd\'hui' : _getDayName(forecastDate),
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 14,
-                    fontWeight: isToday ? FontWeight.w600 : FontWeight.w400,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+        InkWell(
+          onTap: () {
+            // Feedback haptique
+            HapticFeedback.lightImpact();
+
+            // Navigation avec animation personnalisée
+            _navigateToDetailPage(context, forecastDate, forecast);
+          },
+          splashColor: Colors.white.withOpacity(0.2),
+          highlightColor: Colors.white.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(8),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              border: i < forecasts.length - 1
+                  ? Border(
+                bottom: BorderSide(
+                  color: Colors.white.withOpacity(0.1),
+                  width: 0.5,
                 ),
-              ),
-
-              const SizedBox(width: 8),
-
-              // Icône météo
-              SizedBox(
-                width: 24,
-                child: Text(
-                  forecast['emoji'] as String, // Correction: cast explicite vers String
-                  style: const TextStyle(fontSize: 20),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-
-              const SizedBox(width: 8),
-
-              // Probabilité de pluie
-              if ((forecast['rainChance'] as int) > 0) // Correction: cast explicite vers int
+              )
+                  : null,
+            ),
+            child: Row(
+              children: [
+                // Jour de la semaine
                 SizedBox(
-                  width: 40,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        '${forecast['rainChance']}%',
-                        style: const TextStyle(
-                          color: Colors.lightBlue,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
+                  width: 80,
+                  child: Text(
+                    isToday ? 'Aujourd\'hui' : _getDayName(forecastDate),
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: isToday ? FontWeight.w600 : FontWeight.w400,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+
+                const SizedBox(width: 8),
+
+                // Icône météo
+                SizedBox(
+                  width: 24,
+                  child: Text(
+                    forecast['emoji'] as String,
+                    style: const TextStyle(fontSize: 20),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+
+                const SizedBox(width: 8),
+
+                // Probabilité de pluie
+                if ((forecast['rainChance'] as int) > 0)
+                  SizedBox(
+                    width: 40,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          '${forecast['rainChance']}%',
+                          style: const TextStyle(
+                            color: Colors.lightBlue,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
-                      ),
-                      const Text('💧', style: TextStyle(fontSize: 8)),
-                    ],
-                  ),
-                )
-              else
-                const SizedBox(width: 36),
+                        const Text('💧', style: TextStyle(fontSize: 8)),
+                      ],
+                    ),
+                  )
+                else
+                  const SizedBox(width: 36),
 
-              const Spacer(),
+                const Spacer(),
 
-              // Température minimale
-              Text(
-                '${forecast['minTemp']}°',
-                style: const TextStyle(
-                  color: Colors.white70,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w400,
-                ),
-              ),
-
-              const SizedBox(width: 12),
-
-              // Barre de température
-              Container(
-                width: 50,
-                height: 4,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(2),
-                  gradient: LinearGradient(
-                    colors: [
-                      Colors.blue.withOpacity(0.3),
-                      Colors.orange.withOpacity(0.8),
-                    ],
-                  ),
-                ),
-              ),
-
-              const SizedBox(width: 12),
-
-              // Température maximale
-              SizedBox(
-                width: 30,
-                child: Text(
-                  '${forecast['maxTemp']}°',
+                // Température minimale
+                Text(
+                  '${forecast['minTemp']}°',
                   style: const TextStyle(
-                    color: Colors.white,
+                    color: Colors.white70,
                     fontSize: 14,
-                    fontWeight: FontWeight.w500,
+                    fontWeight: FontWeight.w400,
                   ),
-                  textAlign: TextAlign.right,
                 ),
-              ),
-            ],
+
+                const SizedBox(width: 12),
+
+                // Barre de température
+                Container(
+                  width: 50,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(2),
+                    gradient: LinearGradient(
+                      colors: [
+                        Colors.blue.withOpacity(0.3),
+                        Colors.orange.withOpacity(0.8),
+                      ],
+                    ),
+                  ),
+                ),
+
+                const SizedBox(width: 12),
+
+                // Température maximale
+                SizedBox(
+                  width: 30,
+                  child: Text(
+                    '${forecast['maxTemp']}°',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    textAlign: TextAlign.right,
+                  ),
+                ),
+
+                const SizedBox(width: 8),
+
+                // Icône de navigation
+                const Icon(
+                  Icons.chevron_right,
+                  color: Colors.white54,
+                  size: 20,
+                ),
+              ],
+            ),
           ),
         ).animate(delay: (1800 + i * 50).ms)
             .fadeIn(duration: 400.ms)
@@ -474,6 +497,40 @@ class WeatherHeader extends StatelessWidget {
     }
 
     return items;
+  }
+
+  // Méthode de navigation avec animation personnalisée
+  void _navigateToDetailPage(BuildContext context, DateTime date, Map<String, dynamic> forecast) {
+    Navigator.push(
+      context,
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            DailyWeatherDetail(
+              weatherData: weatherData,
+              selectedDate: date,
+              dayForecast: forecast,
+            ),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          const begin = Offset(1.0, 0.0);
+          const end = Offset.zero;
+          const curve = Curves.easeInOut;
+
+          var tween = Tween(begin: begin, end: end).chain(
+            CurveTween(curve: curve),
+          );
+
+          return SlideTransition(
+            position: animation.drive(tween),
+            child: FadeTransition(
+              opacity: animation,
+              child: child,
+            ),
+          );
+        },
+        transitionDuration: const Duration(milliseconds: 400),
+        reverseTransitionDuration: const Duration(milliseconds: 300),
+      ),
+    );
   }
 
   String _getDayName(DateTime date) {
@@ -518,18 +575,18 @@ class WeatherHeader extends StatelessWidget {
     return weatherPatterns.asMap().entries.map((entry) {
       final index = entry.key;
       final pattern = entry.value;
-      final maxTemp = (baseTemp + (pattern['tempVar'] as int)).round(); // Correction: cast explicite
+      final maxTemp = (baseTemp + (pattern['tempVar'] as int)).round();
       final minTemp = (maxTemp - 5).round();
 
       return {
         'maxTemp': maxTemp,
         'minTemp': minTemp,
         'emoji': WeatherEmojis.getSmartEmoji(
-          iconCode: pattern['code'] as String, // Correction: cast explicite
+          iconCode: pattern['code'] as String,
           temperature: maxTemp.toDouble(),
         ),
-        'description': WeatherEmojis.getEmojiDescription(pattern['code'] as String), // Correction: cast explicite
-        'rainChance': _getRainChance(pattern['code'] as String), // Correction: cast explicite
+        'description': WeatherEmojis.getEmojiDescription(pattern['code'] as String),
+        'rainChance': _getRainChance(pattern['code'] as String),
       };
     }).toList();
   }
