@@ -15,7 +15,7 @@ class WeatherShareService {
   static const String _appUrl = 'https://play.google.com/store/apps/details?id=com.example.weatherpro';
 
   // ============================================
-  // 🎯 MÉTHODES DE PARTAGE PRINCIPAL
+  //  MÉTHODES DE PARTAGE PRINCIPAL
   // ============================================
 
   /// Partage les données météo avec emojis intelligents
@@ -95,7 +95,7 @@ class WeatherShareService {
   }
 
   // ============================================
-  // 🛠️ MÉTHODES DE CONSTRUCTION DU TEXTE
+  // MÉTHODES DE CONSTRUCTION DU TEXTE
   // ============================================
 
   static String _buildShareText(

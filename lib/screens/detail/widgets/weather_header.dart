@@ -4,7 +4,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:intl/intl.dart';
 import '../../../model/weather_data.dart';
 import '../../../core/constants/weather_emojis.dart';
-import 'daily_weather_detail.dart'; // Ajoutez cet import
+import 'daily_weather_detail.dart';
 import 'dart:ui';
 
 class WeatherHeader extends StatelessWidget {
@@ -37,7 +37,7 @@ class WeatherHeader extends StatelessWidget {
           const SizedBox(height: 30),
 
           // Prévisions hebdomadaires
-          _buildWeeklyForecast(context), // Ajoutez le context ici
+          _buildWeeklyForecast(context),
         ],
       ),
     );

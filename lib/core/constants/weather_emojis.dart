@@ -1,5 +1,5 @@
 // ============================================
-// 🎯 BIBLIOTHÈQUE D'EMOJIS MÉTÉO COMPLÈTE
+//  BIBLIOTHÈQUE D'EMOJIS MÉTÉO COMPLÈTE
 // ============================================
 
 class WeatherEmojis {
